@@ -32,6 +32,10 @@ class SharedRAGState:
         self.store: Optional[Dict[str, Any]] = None
         self.args: Optional[Args] = None  # Store CLI args for web server
 
+        # Party mode: track messages since last AI response
+        self.messages_since_ai: int = 0
+        self.ai_auto_join_threshold: int = 4  # AI joins after this many messages
+
         # Thread synchronization
         self.lock = threading.RLock()
         self.shutdown_event = threading.Event()
@@ -68,6 +72,22 @@ class SharedRAGState:
                 "user_name": user_name,
             }
             self.messages.append(display_msg)
+
+            # Track messages for party mode auto-join
+            if message["role"] == "user" and source != "internal":
+                self.messages_since_ai += 1
+            elif message["role"] == "assistant":
+                self.messages_since_ai = 0
+
+    def should_ai_auto_join(self) -> bool:
+        """Check if AI should auto-join the conversation"""
+        with self.lock:
+            return self.messages_since_ai >= self.ai_auto_join_threshold
+
+    def get_messages_since_ai(self) -> int:
+        """Get count of user messages since last AI response"""
+        with self.lock:
+            return self.messages_since_ai
 
     def get_messages_for_context(
         self, context_size: int, debug: bool = False

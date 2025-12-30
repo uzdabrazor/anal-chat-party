@@ -1,3 +1,23 @@
+// Random party name generator
+const PARTY_ADJECTIVES = [
+    'Neon', 'Cyber', 'Glitch', 'Rave', 'Techno', 'Dark', 'Electric',
+    'Laser', 'Synth', 'Binary', 'Pixel', 'Chrome', 'Shadow', 'Cosmic',
+    'Acid', 'Bass', 'Void', 'Quantum', 'Hyper', 'Ultra', 'Mega', 'Turbo'
+];
+
+const PARTY_NOUNS = [
+    'Raver', 'Ghost', 'Punk', 'Hacker', 'DJ', 'Cat', 'Wolf', 'Fox',
+    'Ninja', 'Samurai', 'Wizard', 'Phantom', 'Dragon', 'Phoenix',
+    'Shark', 'Viper', 'Crow', 'Owl', 'Bear', 'Tiger', 'Panda', 'Dude'
+];
+
+function generatePartyName() {
+    const adj = PARTY_ADJECTIVES[Math.floor(Math.random() * PARTY_ADJECTIVES.length)];
+    const noun = PARTY_NOUNS[Math.floor(Math.random() * PARTY_NOUNS.length)];
+    const num = Math.floor(Math.random() * 100);
+    return `${adj}${noun}${num}`;
+}
+
 // WebSocket connection and chat functionality
 class RAGChat {
     constructor() {
@@ -8,7 +28,8 @@ class RAGChat {
         this.currentMessage = null;
         this.sessionId = null;
         this.scrollPending = false;
-        
+        this.thinkingIndicator = null;
+
         this.initializeElements();
         this.initializeAuth();
     }
@@ -32,10 +53,14 @@ class RAGChat {
         this.welcomeModal = document.getElementById('welcome-modal');
         this.welcomeCloseBtn = document.getElementById('welcome-close');
 
-        // Load saved username from localStorage
+        // Load saved username or generate random party name
         const savedName = localStorage.getItem('userName');
         if (savedName) {
             this.nameInput.value = savedName;
+        } else {
+            const randomName = generatePartyName();
+            this.nameInput.value = randomName;
+            localStorage.setItem('userName', randomName);
         }
 
         // Initialize welcome modal
@@ -271,14 +296,16 @@ class RAGChat {
     handleWebSocketMessage(data) {
         switch (data.type) {
             case 'message':
-                // Finish any current streaming message before adding new one
                 this.finishCurrentMessage();
                 this.addMessage(data.role, data.content, data.source, data.user_name);
+                if (data.role === 'user') {
+                    this.showThinkingIndicator();
+                }
                 break;
                 
             case 'chunk':
+                this.hideThinkingIndicator();
                 this.appendToCurrentMessage(data.content);
-                // Send ACK back to server for flow control
                 if (data.seq_id && this.ws && this.ws.readyState === WebSocket.OPEN) {
                     this.ws.send(JSON.stringify({
                         type: 'chunk_ack',
@@ -295,6 +322,7 @@ class RAGChat {
                 break;
                 
             case 'error':
+                this.hideThinkingIndicator();
                 this.addErrorMessage(data.content);
                 break;
                 
@@ -380,8 +408,7 @@ class RAGChat {
         };
         
         this.ws.send(JSON.stringify(messageData));
-        
-        // Clear message input
+
         this.messageInput.value = '';
         this.messageInput.style.height = 'auto';
         
@@ -495,9 +522,38 @@ class RAGChat {
         if (this.currentMessage) {
             const messageDiv = this.currentMessage.parentElement;
             messageDiv.classList.remove('streaming');
-            // Force reflow to ensure the streaming cursor is immediately removed
             messageDiv.offsetHeight;
             this.currentMessage = null;
+        }
+    }
+
+    showThinkingIndicator() {
+        this.hideThinkingIndicator();
+
+        const indicator = document.createElement('div');
+        indicator.className = 'thinking-indicator';
+        indicator.innerHTML = `
+            <img src="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/logo.jpeg" class="thinking-avatar" />
+            <div class="thinking-content">
+                <span class="thinking-label">uzdabrazor is thinking...</span>
+                <div class="thinking-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="party-hint">PARTY MODE: keep chatting! tag @uzdabrazor for direct response</span>
+            </div>
+        `;
+
+        this.chatMessages.appendChild(indicator);
+        this.thinkingIndicator = indicator;
+        this.scrollToBottom();
+    }
+
+    hideThinkingIndicator() {
+        if (this.thinkingIndicator) {
+            this.thinkingIndicator.remove();
+            this.thinkingIndicator = null;
         }
     }
     

@@ -31,7 +31,8 @@ LISTEN="localhost:8000"
 RAG_DIR=""
 DEBUG=""
 NAME="AnalKing"
-CONTEXT_SIZE="4096"
+CONTEXT_SIZE="2048"
+USE_FULL_PROMPT=""
 
 # Help function
 show_help() {
@@ -52,7 +53,8 @@ ${YELLOW}Advanced Options:${NC}
   --model MODEL        LLM model (default: dolphin-mistral:7b)
   --embed-model MODEL  Embedding model (default: nomic-embed-text:v1.5)
   --ollama-url URL     Ollama server URL (default: http://localhost:11434)
-  --context-size SIZE  Context window size (default: 4096)
+  --context-size SIZE  Context window size (default: 2048)
+  --full-prompt        Use full detailed prompt (slower, default: mini prompt)
 
 ${YELLOW}Examples:${NC}
   ${GREEN}# Basic Anal King - pure chat party${NC}
@@ -110,6 +112,10 @@ while [[ $# -gt 0 ]]; do
             DEBUG="--debug"
             shift
             ;;
+        --full-prompt)
+            USE_FULL_PROMPT="1"
+            shift
+            ;;
         --help|-h)
             show_help
             exit 0
@@ -122,12 +128,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if anal_king_prompt.txt exists
+# Determine which prompt file to use
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROMPT_FILE="$SCRIPT_DIR/anal_king_prompt.txt"
+
+if [ -n "$USE_FULL_PROMPT" ]; then
+    PROMPT_FILE="$SCRIPT_DIR/anal_king_prompt.txt"
+    PROMPT_TYPE="Full"
+else
+    PROMPT_FILE="$SCRIPT_DIR/anal_king_prompt_mini.txt"
+    PROMPT_TYPE="Mini (fast)"
+fi
 
 if [ ! -f "$PROMPT_FILE" ]; then
-    echo -e "${RED}Error: anal_king_prompt.txt not found at $PROMPT_FILE${NC}"
+    echo -e "${RED}Error: Prompt file not found at $PROMPT_FILE${NC}"
     echo "Make sure you're running this script from the project directory!"
     exit 1
 fi
@@ -140,11 +153,12 @@ if [ ! -f "$SCRIPT_DIR/main.py" ]; then
 fi
 
 # Show configuration
-echo -e "${CYAN}🔧 Configuration:${NC}"
+echo -e "${CYAN}Configuration:${NC}"
 echo -e "  Model: ${GREEN}$MODEL${NC}"
 echo -e "  Listen: ${GREEN}$LISTEN${NC}"
 echo -e "  Username: ${GREEN}$NAME${NC}"
 echo -e "  Context Size: ${GREEN}$CONTEXT_SIZE${NC}"
+echo -e "  Prompt: ${GREEN}$PROMPT_TYPE${NC}"
 if [ -n "$RAG_DIR" ]; then
     echo -e "  RAG Directory: ${GREEN}$RAG_DIR${NC}"
 else
@@ -163,7 +177,7 @@ CMD="$CMD --ollama-url \"$OLLAMA_URL\""
 CMD="$CMD --listen \"$LISTEN\""
 CMD="$CMD --name \"$NAME\""
 CMD="$CMD --context-size $CONTEXT_SIZE"
-CMD="$CMD --system-prompt \"\$(cat '$PROMPT_FILE')\""
+CMD="$CMD --system-prompt-file \"$PROMPT_FILE\""
 
 if [ -n "$RAG_DIR" ]; then
     CMD="$CMD --rag-dir \"$RAG_DIR\""

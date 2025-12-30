@@ -228,55 +228,168 @@ class SimpleCLIHandler:
         # Process through shared pipeline with CLI user name
         self._process_message(message, "cli", user_name=cli_name)
 
-    def _process_web_message(self, message: str, user_name: Optional[str] = None):
-        """Process message from web interface"""
-        # Process through shared pipeline with web user name
-        self._process_message(message, "web", user_name=user_name)
+    def _generate_ai_response(self, source: str, tagged: bool = False):
+        """Generate AI response for party mode"""
+        try:
+            if shared_state.index is not None and shared_state.store is not None:
+                recent_msgs = shared_state.get_display_messages()[-5:]
+                combined_query = " ".join(
+                    [m["content"] for m in recent_msgs if m["role"] == "user"]
+                )
+                if combined_query:
+                    q_vec: npt.NDArray[np.float32] = ollama_embed(
+                        [combined_query],
+                        self.args.embed_model,
+                        self.args.ollama_url,
+                        self.args.debug,
+                    )
+                    ctx = pick_context(
+                        shared_state.index,
+                        shared_state.store,
+                        q_vec,
+                        self.args.max_ctx_docs,
+                        self.args.chunks,
+                        debug=self.args.debug,
+                    )
+                    context_msg = {"role": "user", "content": f"CONTEXT:\n{ctx}"}
+                    shared_state.add_message(context_msg, source="internal")
 
-        # Show CLI prompt after processing web message
-        web_count = shared_state.get_web_client_count()
-        if web_count > 0:
-            console.print(
-                f"\n[dim](🌐 {web_count} web client"
-                f"{'s' if web_count != 1 else ''} connected)[/]"
+            context_messages = shared_state.get_messages_for_context(
+                self.args.context_size, debug=self.args.debug
             )
-        console.print("[bold cyan]🗨️  > [/]", end="")
+
+            response_content = ""
+            try:
+                for chunk in stream_chat(
+                    context_messages,
+                    self.args.model,
+                    self.args.ollama_url,
+                    self.args.context_size,
+                    self.args.debug,
+                ):
+                    console.print(chunk, end="")
+                    shared_state.cli_to_web_queue.put(("chunk", chunk))
+                    response_content += chunk
+
+                console.print()
+
+                assistant_msg = {"role": "assistant", "content": response_content}
+                shared_state.add_message(assistant_msg, source=source)
+
+                shared_state.cli_to_web_queue.put(
+                    (
+                        "assistant_complete",
+                        {
+                            "role": "assistant",
+                            "content": response_content,
+                            "source": source,
+                        },
+                    )
+                )
+
+            except Exception as e:
+                error_msg = f"Error generating response: {str(e)}"
+                console.print(f"\n[bold red]{error_msg}[/]")
+                error_chat_msg = {"role": "assistant", "content": error_msg}
+                shared_state.add_message(error_chat_msg, source=source)
+                shared_state.cli_to_web_queue.put(
+                    ("error", {"role": "assistant", "content": error_msg, "source": source})
+                )
+
+        except Exception as e:
+            console.print(f"[bold red]Error generating AI response: {e}[/]")
+
+    def _check_for_tag(self, message: str) -> bool:
+        """Check if message contains @uzdabrazor tag"""
+        lower_msg = message.lower()
+        return "@uzdabrazor" in lower_msg or "@uzda" in lower_msg
 
     def _process_web_messages(self):
-        """Process messages from web interface"""
+        """Process messages from web interface - PARTY MODE with tagging"""
         try:
+            collected_messages = []
+            has_tag = False
+
             while True:
                 try:
                     msg_type, content = shared_state.web_to_cli_queue.get_nowait()
 
                     if msg_type == "user":
-                        # Handle old format (content) and new format (dict)
                         if isinstance(content, dict):
                             content_dict = cast(Dict[str, Any], content)
                             msg_content: str = str(content_dict.get("content", ""))
                             user_name: Optional[str] = content_dict.get("user_name")
-                            if isinstance(user_name, str):
-                                pass  # Already correct type
-                            else:
+                            if not isinstance(user_name, str):
                                 user_name = None
                         else:
                             msg_content: str = str(content)
                             user_name: Optional[str] = None
 
-                        # Clear current line and show web user message
                         console.print(
                             f"\r[bold blue]🌐 [{user_name or 'Anonymous'}]:[/] "
                             f"[white]{msg_content}[/]"
                         )
 
-                        # Process web message through same RAG pipeline
-                        self._process_web_message(msg_content, user_name=user_name)
+                        collected_messages.append((msg_content, user_name))
+
+                        if self._check_for_tag(msg_content):
+                            has_tag = True
 
                 except Empty:
                     break
 
+            if not collected_messages:
+                return
+
+            with self.processing_lock:
+                if self.is_processing:
+                    for msg_content, user_name in collected_messages:
+                        shared_state.web_to_cli_queue.put(
+                            ("user", {"content": msg_content, "user_name": user_name})
+                        )
+                    return
+
+            for msg_content, user_name in collected_messages:
+                display_name = user_name if user_name else "Anonymous"
+                question_msg = {
+                    "role": "user",
+                    "content": f"I am {display_name}:\n{msg_content}",
+                }
+                shared_state.add_message(question_msg, source="web", user_name=user_name)
+
+            should_respond = has_tag or shared_state.should_ai_auto_join()
+
+            if should_respond:
+                with self.processing_lock:
+                    self.is_processing = True
+
+                try:
+                    self._generate_ai_response("web", tagged=has_tag)
+                finally:
+                    with self.processing_lock:
+                        self.is_processing = False
+
+                    web_count = shared_state.get_web_client_count()
+                    if web_count > 0:
+                        console.print(
+                            f"\n[dim](🌐 {web_count} web client"
+                            f"{'s' if web_count != 1 else ''} connected)[/]"
+                        )
+                    console.print("[bold cyan]🗨️  > [/]", end="")
+            else:
+                msgs_until_join = (
+                    shared_state.ai_auto_join_threshold
+                    - shared_state.get_messages_since_ai()
+                )
+                console.print(
+                    f"[dim](Party chat - AI will join in {msgs_until_join} "
+                    f"more messages or tag @uzdabrazor)[/]"
+                )
+
         except Exception as e:
             console.print(f"[bold red]Error processing web messages: {e}[/]")
+            with self.processing_lock:
+                self.is_processing = False
 
 
 def run_simple_cli_interface(

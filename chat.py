@@ -38,7 +38,7 @@ SYSTEM_PROMPT = (
 )
 
 # Switch between /api/chat (True) and /api/generate (False)
-USE_CHAT_API = False
+USE_CHAT_API = True
 
 # Token counting with tiktoken
 try:
