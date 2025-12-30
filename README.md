@@ -20,6 +20,7 @@
 
 - [💎 THE UZDABRAZOR ECOSYSTEM](#-the-uzdabrazor-ecosystem-)
 - [🔥 WHAT THE HELL IS THIS THING?](#-what-the-hell-is-this-thing-)
+- [📸 SCREENSHOTS OF THE CHAOS](#-screenshots-of-the-chaos-)
 - [🎭 THE BASIC MINDFUCK](#-the-basic-mindfuck-)
 - [⚡ REQUIREMENTS](#-requirements-dont-skip-this-shit-)
 - [🚀 GETTING THIS BEAST RUNNING](#-getting-this-beast-running-)
@@ -88,14 +89,17 @@ Get ready for some visual fucking carnage! Here's what this beautiful disaster l
 
 ### 🖥️ **CLI Terminal Madness**
 
+![CLI Interface](./assets/cli.png)
 _The terminal experience - where real hackers live and breathe_
 
 ### 🌐 **Web Interface Glory**
 
+![Web Interface](./assets/webui.png)
 _Pretty browser interface for the GUI peasants (but hey, it works!)_
 
 ### 🎪 **Multi-User Chaos in Action**
 
+![Multi-User Chat](./assets/chat.gif)
 _When everyone's talking to the same AI simultaneously - pure pandemonium!_
 
 ## 🎭 THE BASIC MINDFUCK 🎭

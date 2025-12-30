@@ -19,7 +19,7 @@ class RAGChat {
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
         this.connectionStatus = document.getElementById('connection-status');
-        
+
         // Auth elements
         this.authScreen = document.getElementById('auth-screen');
         this.chatScreen = document.getElementById('chat-screen');
@@ -27,16 +27,53 @@ class RAGChat {
         this.loginButton = document.getElementById('login-button');
         this.logoutButton = document.getElementById('logout-button');
         this.authError = document.getElementById('auth-error');
-        
+
+        // Welcome modal elements
+        this.welcomeModal = document.getElementById('welcome-modal');
+        this.welcomeCloseBtn = document.getElementById('welcome-close');
+
         // Load saved username from localStorage
         const savedName = localStorage.getItem('userName');
         if (savedName) {
             this.nameInput.value = savedName;
         }
+
+        // Initialize welcome modal
+        this.initializeWelcomeModal();
+    }
+
+    initializeWelcomeModal() {
+        const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+
+        if (!hasSeenWelcome) {
+            this.showWelcomeModal();
+        } else {
+            this.welcomeModal.classList.add('hidden');
+        }
+
+        this.welcomeCloseBtn.addEventListener('click', () => {
+            this.closeWelcomeModal();
+        });
+
+        this.welcomeModal.addEventListener('click', (e) => {
+            if (e.target === this.welcomeModal) {
+                this.closeWelcomeModal();
+            }
+        });
+    }
+
+    showWelcomeModal() {
+        this.welcomeModal.classList.remove('hidden');
+    }
+
+    closeWelcomeModal() {
+        this.welcomeModal.classList.add('hidden');
+        localStorage.setItem('hasSeenWelcome', 'true');
     }
     
     async initializeAuth() {
-        if (!window.passwordRequired) {
+        const passwordRequired = document.body.getAttribute('data-password-required') === 'true';
+        if (!passwordRequired) {
             // No password required, go straight to chat
             this.showChatScreen();
             this.connectWebSocket();
@@ -88,7 +125,8 @@ class RAGChat {
     showChatScreen() {
         this.authScreen.style.display = 'none';
         this.chatScreen.style.display = 'flex';
-        if (window.passwordRequired) {
+        const passwordRequired = document.body.getAttribute('data-password-required') === 'true';
+        if (passwordRequired) {
             this.logoutButton.style.display = 'block';
         }
         // Focus message input when chat screen is shown
@@ -182,9 +220,10 @@ class RAGChat {
     connectWebSocket() {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         let wsUrl = `${wsProtocol}//${window.location.host}/ws`;
-        
+
         // Add session ID if password is required
-        if (window.passwordRequired && this.sessionId) {
+        const passwordRequired = document.body.getAttribute('data-password-required') === 'true';
+        if (passwordRequired && this.sessionId) {
             wsUrl += `?session_id=${this.sessionId}`;
         }
         
@@ -200,8 +239,9 @@ class RAGChat {
     setupWebSocketHandlers() {
         this.ws.onopen = () => {
             console.log('WebSocket connected');
-            this.connectionStatus.textContent = '🟢 Connected';
+            this.connectionStatus.classList.remove('disconnected');
             this.connectionStatus.classList.add('connected');
+            this.connectionStatus.querySelector('.status-text').textContent = 'Connected';
             this.nameInput.disabled = false;
             this.messageInput.disabled = false;
             this.sendButton.disabled = false;
@@ -264,19 +304,20 @@ class RAGChat {
     }
     
     handleConnectionError() {
-        this.connectionStatus.textContent = '🔴 Disconnected';
         this.connectionStatus.classList.remove('connected');
+        this.connectionStatus.classList.add('disconnected');
+        this.connectionStatus.querySelector('.status-text').textContent = 'Disconnected';
         this.nameInput.disabled = true;
         this.messageInput.disabled = true;
         this.sendButton.disabled = true;
-        
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             console.log(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
             setTimeout(() => this.connectWebSocket(), this.reconnectDelay);
             this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 10000);
         } else {
-            this.connectionStatus.textContent = '🔴 Connection failed';
+            this.connectionStatus.querySelector('.status-text').textContent = 'Connection failed';
         }
     }
     
@@ -395,8 +436,8 @@ class RAGChat {
                 }
                 break;
             case 'assistant':
-                emoji = '🤖';
-                label = 'Assistant';
+                emoji = '<img src="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/logo.jpeg" class="assistant-avatar" />';
+                label = 'uzdabrazor';
                 break;
             case 'system':
                 emoji = '⚙️';
@@ -415,7 +456,9 @@ class RAGChat {
         
         messageDiv.appendChild(headerDiv);
         messageDiv.appendChild(contentDiv);
-        
+
+        messageDiv.style.animation = 'party-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
         

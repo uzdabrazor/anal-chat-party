@@ -64,8 +64,14 @@ templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/")
+async def home_page(request: Request):
+    """Serve the homepage"""
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/chat")
 async def chat_page(request: Request):
-    """Serve the main chat interface"""
+    """Serve the chat interface"""
     return templates.TemplateResponse(
         "chat.html", {"request": request, "password_required": password_required}
     )

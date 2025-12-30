@@ -3,40 +3,113 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🚀 ANAL CHAT PARTY</title>
+    <title>ANAL CHAT PARTY - Live Chat</title>
+    <meta name="description" content="The wildest multi-user AI chat party powered by UZDABRAZOR. Real-time conversations with AI. CLI and Web. Pure chaos." />
+    <meta name="keywords" content="AI chat, multi-user chat, RAG, UZDABRAZOR, real-time chat, Ollama, local AI" />
+    <meta name="author" content="UZDABRAZOR" />
+    <meta property="og:title" content="ANAL CHAT PARTY - Live Chat" />
+    <meta property="og:description" content="The wildest multi-user AI chat party. Where everyone meets AI - powered by $UZDABRAZOR" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/banner.jpeg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ANAL CHAT PARTY - Live Chat" />
+    <meta name="twitter:description" content="The wildest multi-user AI chat party. Where everyone meets AI." />
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/banner.jpeg" />
+    <link rel="icon" href="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/logo.jpeg" type="image/jpeg" />
     <link rel="stylesheet" href="/static/style.css" />
   </head>
-  <body>
+  <body data-password-required="{{ password_required|tojson }}">
+    <div class="cyber-grid"></div>
+    <div class="party-decorations">
+      <div class="confetti"></div>
+      <div class="party-lights"></div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="welcome-modal">
+      <div class="welcome-container">
+        <div class="welcome-header">
+          <h2 class="welcome-title">🎉 WELCOME TO THE ANAL CHAT PARTY! 🎊</h2>
+          <div class="welcome-subtitle">Congratulations, You Made It!</div>
+        </div>
+
+        <div class="welcome-body">
+          <div class="welcome-avatar">
+            <img src="https://raw.githubusercontent.com/uzdabrazor/uzdabrazor/refs/heads/main/avatar.jpeg" alt="ANAL KING" class="welcome-avatar-img" />
+          </div>
+
+          <div class="welcome-message">
+            <p class="anal-king-intro">Greetings from the <strong>ANAL KING</strong> himself!</p>
+
+            <p>You've just entered the <strong>wildest multi-user AI chat party</strong> in cyberspace. This isn't your typical boring chatbot - oh no, this is where <span class="highlight-text">chaos meets intelligence</span>.</p>
+
+            <div class="wtf-section">
+              <h3>🔥 WTF Is This Thing?</h3>
+              <ul class="feature-list">
+                <li><strong>Multi-User Mayhem:</strong> Chat with AI alongside CLI warriors and web users - all in real-time</li>
+                <li><strong>RAG-Powered Knowledge:</strong> AI that actually knows stuff from your documents</li>
+                <li><strong>Local & Private:</strong> Runs on your hardware with Ollama - no cloud bullshit</li>
+                <li><strong>Real-Time Streaming:</strong> Watch the AI think as it responds</li>
+              </ul>
+            </div>
+
+            <p class="welcome-cta">Start typing below and join the party. Don't be shy - the AI doesn't bite... much.</p>
+
+            <p class="welcome-footer">Powered by <strong>$UZDABRAZOR</strong> - The ecosystem that gets shit done.</p>
+          </div>
+        </div>
+
+        <button id="welcome-close" class="btn-welcome">
+          <span>LET'S F*CKING GO! 🚀</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Password Authentication Screen -->
     <div id="auth-screen" class="auth-screen" style="display: none">
       <div class="auth-container">
+        <div class="auth-header">
+          <h2 class="auth-title">ENTER THE PARTY</h2>
+          <p class="auth-subtitle">Authentication Required</p>
+        </div>
         <div class="auth-form">
           <input
             type="password"
             id="password-input"
             placeholder="Enter password..."
           />
-          <button id="login-button">Login</button>
+          <button id="login-button" class="btn-auth">
+            <span>AUTHENTICATE</span>
+          </button>
           <div id="auth-error" class="auth-error" style="display: none"></div>
         </div>
       </div>
     </div>
 
     <!-- Main Chat Interface -->
-    <div id="chat-screen" class="container">
-      <header class="header">
-        <h1>🚀 ANAL CHAT PARTY</h1>
-        <div class="status">
-          <span id="connection-status" class="status-indicator"
-            >🔴 Connecting...</span
-          >
+    <div id="chat-screen" class="chat-screen">
+      <header class="chat-header">
+        <div class="header-left">
+          <a href="/" class="back-btn" title="Back to Home">
+            <span>←</span>
+          </a>
+          <div class="header-branding">
+            <h1 class="chat-title">🎉 ANAL CHAT PARTY 🎊</h1>
+            <span id="connection-status" class="status-indicator disconnected">
+              <span class="status-dot"></span>
+              <span class="status-text">Connecting...</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="header-right">
           <div class="name-container">
-            <label for="name-input">Your name:</label>
             <input
               type="text"
               id="name-input"
               value="Anonymous"
               maxlength="20"
+              placeholder="Your name"
             />
           </div>
           <button
@@ -44,34 +117,32 @@
             class="logout-button"
             style="display: none"
           >
-            Logout
+            <span>Logout</span>
           </button>
         </div>
       </header>
 
-      <div class="chat-container">
-        <div id="chat-messages" class="chat-messages"></div>
-        <div class="input-container">
-          <input
-            type="text"
-            id="message-input"
-            placeholder="🗨️ Type your message..."
-            disabled
-          />
-          <button id="send-button" disabled>Send</button>
+      <div class="chat-main">
+        <div class="chat-container">
+          <div id="chat-messages" class="chat-messages"></div>
         </div>
-      </div>
 
-      <!-- Logout Button -->
-      <div class="logout-container" style="display: none">
-        <button id="logout-button" class="logout-button">Logout</button>
+        <div class="input-panel">
+          <div class="input-container">
+            <input
+              type="text"
+              id="message-input"
+              placeholder="Type your message..."
+              disabled
+            />
+            <button id="send-button" disabled class="btn-send">
+              <span>SEND</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <script>
-      // Pass server-side variables to JavaScript
-      window.passwordRequired = {{ password_required|tojson }};
-    </script>
     <script src="/static/app.js"></script>
   </body>
 </html>
