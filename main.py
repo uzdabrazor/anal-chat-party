@@ -39,6 +39,7 @@ class Args:
     debug: bool = False
     rebuild: bool = False
     no_web: bool = False
+    no_cli: bool = False
     system_prompt: Optional[str] = None
     name: Optional[str] = None
     listen: str = "localhost:8000"
@@ -112,6 +113,9 @@ def main():
         "--no-web", action="store_true", help="Disable web interface (CLI only)"
     )
     ap.add_argument(
+        "--no-cli", action="store_true", help="Disable CLI interface (Web only, for systemd services)"
+    )
+    ap.add_argument(
         "--system-prompt",
         help="Custom system prompt for the LLM",
     )
@@ -125,6 +129,12 @@ def main():
         help="Listen address and port in format host:port (default: localhost:8000)",
     )
     parsed_args = ap.parse_args()
+
+    # Validate conflicting options
+    if parsed_args.no_web and parsed_args.no_cli:
+        console.print("[bold red]Error: Cannot use both --no-web and --no-cli (nothing would run!)[/]")
+        sys.exit(1)
+
     args = Args(
         rag_dir=parsed_args.rag_dir,
         model=parsed_args.model,
@@ -137,6 +147,7 @@ def main():
         debug=parsed_args.debug,
         rebuild=parsed_args.rebuild,
         no_web=parsed_args.no_web,
+        no_cli=parsed_args.no_cli,
         system_prompt=parsed_args.system_prompt,
         name=parsed_args.name,
         listen=parsed_args.listen,
@@ -216,7 +227,6 @@ def main():
             )
 
     # Import CLI and web components
-    from cli_handler_simple import run_simple_cli_interface
     from shared_state import shared_state
 
     # Start web server if enabled
@@ -231,16 +241,45 @@ def main():
         # Start web server in background thread (silent startup)
         run_web_server(host=host, port=port)
 
-    # Run CLI interface (same logic whether web is enabled or not)
-    try:
-        run_simple_cli_interface(args, index, store or {}, web_enabled)
-    except KeyboardInterrupt:
-        console.print("\n[bold red]🛑 Shutting down gracefully...[/]")
-        if web_enabled:
-            shared_state.shutdown()
-    except Exception as e:
-        console.print(f"[bold red]Error: {e}[/]")
-        if web_enabled:
+    # Set RAG components in shared state (needed for both CLI and web-only mode)
+    shared_state.set_rag_components(index, store or {}, args)
+
+    # Initialize conversation with system message
+    from chat import SYSTEM_PROMPT
+    system_prompt = args.system_prompt if args.system_prompt else SYSTEM_PROMPT
+    system_msg = {"role": "system", "content": system_prompt}
+    shared_state.add_message(system_msg, source="internal")
+
+    # Run CLI interface or just keep web server running
+    if not args.no_cli:
+        # Run CLI interface
+        from cli_handler_simple import run_simple_cli_interface
+        try:
+            run_simple_cli_interface(args, index, store or {}, web_enabled)
+        except KeyboardInterrupt:
+            console.print("\n[bold red]🛑 Shutting down gracefully...[/]")
+            if web_enabled:
+                shared_state.shutdown()
+        except Exception as e:
+            console.print(f"[bold red]Error: {e}[/]")
+            if web_enabled:
+                shared_state.shutdown()
+    else:
+        # Web-only mode: just keep the server running
+        console.print("🚀 [bold green]Starting ANAL CHAT PARTY (Web-only mode)...[/]")
+        console.print(f"🌐 [bold blue]Web interface available at http://{args.listen}[/]")
+        console.print("🔄 [dim]Press Ctrl+C to stop the server[/]\n")
+
+        try:
+            # Keep the main thread alive
+            import signal
+            import time
+
+            # Wait forever until interrupted
+            while not shared_state.shutdown_event.is_set():
+                time.sleep(1)
+        except KeyboardInterrupt:
+            console.print("\n[bold red]🛑 Shutting down...[/]")
             shared_state.shutdown()
 
 
