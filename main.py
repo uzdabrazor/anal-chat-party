@@ -120,6 +120,10 @@ def main():
         help="Custom system prompt for the LLM",
     )
     ap.add_argument(
+        "--system-prompt-file",
+        help="Path to file containing custom system prompt",
+    )
+    ap.add_argument(
         "--name",
         help="Your name (will be included in context messages)",
     )
@@ -135,6 +139,22 @@ def main():
         console.print("[bold red]Error: Cannot use both --no-web and --no-cli (nothing would run!)[/]")
         sys.exit(1)
 
+    # Handle system prompt from file
+    system_prompt_value = parsed_args.system_prompt
+    if parsed_args.system_prompt_file:
+        if parsed_args.system_prompt:
+            console.print("[bold red]Error: Cannot use both --system-prompt and --system-prompt-file[/]")
+            sys.exit(1)
+        try:
+            with open(parsed_args.system_prompt_file, 'r', encoding='utf-8') as f:
+                system_prompt_value = f.read().strip()
+        except FileNotFoundError:
+            console.print(f"[bold red]Error: System prompt file not found: {parsed_args.system_prompt_file}[/]")
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"[bold red]Error reading system prompt file: {e}[/]")
+            sys.exit(1)
+
     args = Args(
         rag_dir=parsed_args.rag_dir,
         model=parsed_args.model,
@@ -148,7 +168,7 @@ def main():
         rebuild=parsed_args.rebuild,
         no_web=parsed_args.no_web,
         no_cli=parsed_args.no_cli,
-        system_prompt=parsed_args.system_prompt,
+        system_prompt=system_prompt_value,
         name=parsed_args.name,
         listen=parsed_args.listen,
     )
