@@ -27,6 +27,8 @@ class SimpleCLIHandler:
         self.args = args
         self.web_enabled = web_enabled
         self.web_monitor_thread = None
+        self.processing_lock = threading.Lock()
+        self.is_processing = False
 
     def start_cli(self):
         """Start simple CLI interface"""
