@@ -316,7 +316,6 @@ async def handle_cli_to_web_messages(websocket: WebSocket):
                             )
                         )
                     elif msg_type == "user_message":
-                        # Debug line removed
                         content_dict: Dict[str, Any] = (
                             dict(content)  # type: ignore
                             if isinstance(content, dict)
@@ -331,9 +330,12 @@ async def handle_cli_to_web_messages(websocket: WebSocket):
                             ),
                             "source": str(content_dict.get("source", "")),
                         }
-                        # Include user_name if present
                         if "user_name" in content_dict:
                             message_data["user_name"] = content_dict["user_name"]
+                        if "expects_response" in content_dict:
+                            message_data["expects_response"] = content_dict[
+                                "expects_response"
+                            ]
 
                         await websocket.send_text(json.dumps(message_data))
                     elif msg_type == "error":
@@ -356,26 +358,31 @@ async def handle_cli_to_web_messages(websocket: WebSocket):
         pass
 
 
+def check_for_tag(message: str) -> bool:
+    """Check if message contains @uzdabrazor tag"""
+    lower_msg = message.lower()
+    return "@uzdabrazor" in lower_msg or "@uzda" in lower_msg
+
+
 async def handle_web_user_message(
     content: str, websocket: WebSocket, user_name: Optional[str] = None
 ):
     """Process user message from web interface"""
     try:
-        # Don't add to shared_state here - let CLI handle it as single source of truth
+        has_tag = check_for_tag(content)
+        expects_response = has_tag or shared_state.should_ai_auto_join()
 
-        # Send user message back to sender and broadcast to all web clients
-        user_message_data = {
+        user_message_data: Dict[str, Any] = {
             "type": "message",
             "role": "user",
             "content": content,
             "source": "web",
+            "expects_response": expects_response,
         }
 
-        # Include username if provided
         if user_name:
             user_message_data["user_name"] = user_name
 
-        # Send to current client
         await websocket.send_text(json.dumps(user_message_data))
 
         # Broadcast to other web clients

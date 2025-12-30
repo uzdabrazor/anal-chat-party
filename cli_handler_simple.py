@@ -214,7 +214,6 @@ class SimpleCLIHandler:
         # Get CLI user name
         cli_name = getattr(self.args, "name", None)
 
-        # Notify web clients of CLI user message with name
         shared_state.cli_to_web_queue.put(
             (
                 "user_message",
@@ -223,6 +222,7 @@ class SimpleCLIHandler:
                     "content": message,
                     "source": "cli",
                     "user_name": cli_name or "Anonymous",
+                    "expects_response": True,
                 },
             )
         )

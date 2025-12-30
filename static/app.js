@@ -298,7 +298,7 @@ class RAGChat {
             case 'message':
                 this.finishCurrentMessage();
                 this.addMessage(data.role, data.content, data.source, data.user_name);
-                if (data.role === 'user') {
+                if (data.role === 'user' && data.expects_response) {
                     this.showThinkingIndicator();
                 }
                 break;
