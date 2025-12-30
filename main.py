@@ -285,15 +285,22 @@ def main():
             if web_enabled:
                 shared_state.shutdown()
     else:
-        # Web-only mode: just keep the server running
+        # Web-only mode: run message processor without CLI interface
         console.print("🚀 [bold green]Starting ANAL CHAT PARTY (Web-only mode)...[/]")
         console.print(f"🌐 [bold blue]Web interface available at http://{args.listen}[/]")
         console.print("🔄 [dim]Press Ctrl+C to stop the server[/]\n")
 
         try:
-            # Keep the main thread alive
-            import signal
+            # Start web message processor in web-only mode
+            from cli_handler_simple import SimpleCLIHandler
+            handler = SimpleCLIHandler(args, web_enabled=True)
+
+            # Start only the web message monitor in a background thread
             import time
+            monitor_thread = threading.Thread(
+                target=handler._monitor_web_messages, daemon=True
+            )
+            monitor_thread.start()
 
             # Wait forever until interrupted
             while not shared_state.shutdown_event.is_set():
