@@ -1281,16 +1281,27 @@ body {
         width: 100%;
     }
 
+    .input-panel {
+        padding: 15px 10px;
+    }
+
     .input-container {
         flex-direction: column;
+        gap: 12px;
+    }
+
+    #message-input {
+        width: 100%;
+        font-size: 16px;
+        padding: 14px 16px;
     }
 
     .btn-send {
         width: 100%;
-    }
-
-    #message-input {
-        font-size: 16px;
+        padding: 20px 35px;
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: 2px;
     }
 
     .auth-container {
@@ -1345,11 +1356,31 @@ body {
 
 @media (max-width: 480px) {
     .chat-messages {
-        padding: 15px;
+        padding: 12px 8px;
     }
 
     .input-panel {
-        padding: 15px;
+        padding: 12px 8px;
+    }
+
+    .input-container {
+        gap: 10px;
+    }
+
+    #message-input {
+        width: 100%;
+        padding: 12px 14px;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+
+    .btn-send {
+        width: 100%;
+        padding: 22px 40px;
+        font-size: 1.3rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+        border-radius: 10px;
     }
 
     .message {
