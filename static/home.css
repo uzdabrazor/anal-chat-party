@@ -477,6 +477,45 @@ body {
     50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.6), 0 0 60px rgba(0, 255, 136, 0.3); }
 }
 
+.package-links {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.package-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--dark-border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.package-link:hover {
+    border-color: var(--cyber-blue);
+    color: var(--cyber-blue);
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.package-icon {
+    font-size: 1.3rem;
+}
+
+.package-name {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
 section {
     padding: 100px 0;
     position: relative;
@@ -1009,6 +1048,20 @@ section {
     .btn {
         width: 100%;
         max-width: 300px;
+    }
+
+    .package-links {
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .package-link {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+
+    .package-icon {
+        font-size: 1.1rem;
     }
 
     .feature-grid,
